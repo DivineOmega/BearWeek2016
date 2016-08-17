@@ -29,30 +29,35 @@ end
 function init_game_scene()
 
  pl = create_player()
- 
- scene.update = game_update
- scene.draw = game_draw
+ gores = {}
+ hunters = {}
+ bullets = {}
+ level = 0
  
  next_level()
  
+ scene.update = game_update
+ scene.draw = game_draw
+  
 end
 
 function next_level()
  level += 1
  spawn_count = 0
- spawn_timer = 9999
- hunters = {}
+ spawn_timer = 0
+ pl.reset_pos()
+ sfx(5)
 end
 
 function game_update()
 
  spawn_timer += 1
- 
- if (spawn_timer >= 200) then
+  
+ if (spawn_timer >= 125) then
   spawn_timer = 0
-  spawn_count += 1
   if (spawn_count<level) then
    add(hunters, create_hunter())
+   spawn_count += 1
   end
  end
  
@@ -94,20 +99,36 @@ function game_draw()
   b.draw()
  end
  
- print("level: "..level, 5, 5, 7)
+ if (spawn_count==0) then
+  print("level "..level.."!", 50, 40, 7)
+ end
+ 
+ if (pl.hp<=0) then
+  print("game over!", 45, 40, 7)
+  print("press x to restart", 25, 80, 7)
+  if (btnp(5)) then
+   init_game_scene()
+  end
+ end
 end
 
 function create_player()
  local pl = {}
  pl.width = 14
  pl.height = 20
- pl.x = 64 - (pl.width*0.5)
- pl.y = 64 - (pl.height*0.5)
+ pl.x = 0
+ pl.y = 0
  pl.spd = 2
  pl.moving = false
  pl.moving_anim_step = 0
  pl.moving_timer = 0
- pl.hp = 3
+ pl.max_hp = 6
+ pl.hp = pl.max_hp
+ 
+ pl.reset_pos = function()
+  pl.x = 64 - (pl.width*0.5)
+  pl.y = 64 - (pl.height*0.5)
+ end
  
  pl.draw = function()
   spr(0, pl.x, pl.y, 2, 3)
@@ -119,9 +140,27 @@ function create_player()
     spr(18, pl.x, pl.y+16, 2, 1)
    end
   end
+  
+  local lives_x = 110-(pl.max_hp*6)
+  
+  for i=1, pl.max_hp do
+   spr(23, lives_x+i*6, 10)
+  end 
+  
+  for i=1, pl.hp do
+   spr(24, lives_x+i*6, 10)
+  end
  end
  
  pl.update = function()
+ 
+  if (pl.hp<=0) then
+   return
+  end
+ 
+  if (spawn_count==0) then
+   return
+  end
  
   pl.moving = false
  
@@ -154,7 +193,7 @@ function create_player()
    pl.y = 128-pl.height
    pl.moving = false
   end
-  
+    
   if (pl.moving) then
    pl.moving_timer += 1
    if (pl.moving_timer >= 5) then
@@ -170,6 +209,8 @@ function create_player()
   
  end
  
+ pl.reset_pos()
+ 
  return pl
 end
 
@@ -181,7 +222,7 @@ function create_hunter()
  h.y = 0
  h.spd = 0.75
  h.flipped = false
- h.edge_buf = 5
+ h.edge_buf = 5+rnd(45)
  h.fire_timer = 0
  h.fire_angle = 0
  h.gun_point = {}
@@ -257,7 +298,7 @@ function create_hunter()
   if (h.hp<=0) then
    del(hunters, h)
   end
-  
+    
  end
  
  h.draw = function()
@@ -289,6 +330,10 @@ function create_bullet(x, y, angle)
   	add(gores, create_gore(b))
   	sfx(3)
   end
+  
+  if (b.x < -20 or b.x > 128+20) then
+   del(bullets, b)
+  end
  end
  
  b.draw = function()
@@ -316,11 +361,13 @@ function create_gore(obj)
  end
  
  g.update = function()
-  
+  if (count(gores)>100) then
+   del(gores, g)
+  end
  end
  
  g.draw = function()
-  spr(g.sprite, g.x, g.y, 1, 1, flip_x, flip_y)
+  spr(g.sprite, g.x, g.y, 1, 1, g.flip_x, g.flip_y)
  end
  
  g.rand_sprite()
@@ -340,6 +387,7 @@ function collision(obj1, obj2)
  end
  
 end
+
 __gfx__
 d00dddddddd00ddddddd00ff00dddddddd00000dddddddddd8dddddddddddddddddddddddddddd8ddddddddddddddddd00000000000000000000000000000000
 0440d0000d0440dddddd040040ddddddd0555550dddddddd898ddddddddd888dd8dd88dddddd888dd88ddddddddddddd00000000000000000000000000000000
@@ -349,11 +397,11 @@ dd0444444440dddddddd00ddddddddddd0fffff0dddddddddddddddddd8888dddd88888dd88888dd
 d044704470440ddddddddddddddddddd00fffff00ddddddddddddddddd888dddd88888dd888888ddd88888dddddddddd00000000000000000000000000000000
 d04e004400e40ddddddddddddddddddd050000000000000ddddddddddddd88ddd8ddd88d8888888dddd888dddddddddd00000000000000000000000000000000
 d044442244440ddddddddddddddddddd0044444444440ddddddddddddddddddddddddd8dd8888ddddddddddddddddddd00000000000000000000000000000000
-dd0444444440dddddddd00ff00dddddd050000000000dddddddddddddddddddddddddddddddddddddddddddddddddddd00000000000000000000000000000000
-ddd00000000ddddddddd040040dddddd05605555060ddddddddddddddddddddddddddddddddddddddddddddddddddddd00000000000000000000000000000000
-dddd044440dddddddddd040040dddddd05005555000ddddddddddddddddddddddddddddddddddddddddddddddddddddd00000000000000000000000000000000
-ddd04444440ddddddddd00d040dddddd055555550ddddddddddddddddddddddddddddddddddddddddddddddddddddddd00000000000000000000000000000000
-dd0044ff4400dddddddddddd00dddddd005555550ddddddddddddddddddddddddddddddddddddddddddddddddddddddd00000000000000000000000000000000
+dd0444444440dddddddd00ff00dddddd050000000000ddddddddddddd0d0ddddd0d0dddddddddddddddddddddddddddd00000000000000000000000000000000
+ddd00000000ddddddddd040040dddddd05605555060ddddddddddddd07070ddd08080ddddddddddddddddddddddddddd00000000000000000000000000000000
+dddd044440dddddddddd040040dddddd05005555000ddddddddddddd07770ddd08880ddddddddddddddddddddddddddd00000000000000000000000000000000
+ddd04444440ddddddddd00d040dddddd055555550dddddddddddddddd070ddddd080dddddddddddddddddddddddddddd00000000000000000000000000000000
+dd0044ff4400dddddddddddd00dddddd005555550ddddddddddddddddd0ddddddd0ddddddddddddddddddddddddddddd00000000000000000000000000000000
 d0404ffff4040dddddddddddddddddddd000000000dddddddddddddddddddddddddddddddddddddddddddddddddddddd00000000000000000000000000000000
 d0f04ffff40f0ddddddddddddddddddd07880d08870ddddddddddddddddddddddddddddddddddddddddddddddddddddd00000000000000000000000000000000
 d0004ffff4000ddddddddddddddddddd00000d00000ddddddddddddddddddddddddddddddddddddddddddddddddddddd00000000000000000000000000000000
@@ -511,7 +559,7 @@ __sfx__
 01040000210701f070180700000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 0103000011070100700c0700c07000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 0108000023070230701d0701d07021070210700000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+010d000018070180701c0701c0701f0701f07023070230701d0701d07023070230700000000000240002400028000280002b0002b0002f0002f00029000290002f0002f000000000000000000000000000000000
 001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
