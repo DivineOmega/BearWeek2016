@@ -252,8 +252,8 @@ function create_gore(obj)
  local g = {}
  g.width = 8
  g.height = 8
- g.x = obj.x + (obj.width*0.5)
- g.y = obj.y + (obj.height*0.5)
+ g.x = obj.x + (obj.width*0.5) - (g.width*0.5)
+ g.y = obj.y + (obj.height*0.5) - (g.height*0.5)
  g.sprite = 7
  g.flip_x = false
  g.flip_y = false
